@@ -7,7 +7,9 @@
 //
 // I²C-bus: Wire (GPIO 19 = SDA, GPIO 18 = SCL)
 // BNO055 adres: 0x28
-// Serial: 115200 baud
+//
+// LET OP! Serial0: 115200 baud
+//
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <Arduino.h>
