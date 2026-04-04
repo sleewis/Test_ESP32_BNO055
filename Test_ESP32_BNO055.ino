@@ -10,6 +10,17 @@
 //
 // LET OP! Serial0: 115200 baud
 //
+// Wat het doet:
+// - Initialiseert I²C op GPIO 19 (SDA) / 18 (SCL) @ 400 kHz — zelfde bus als de robot
+// - Controleert het chip-ID (0xA0) bij opstarten en geeft duidelijke foutmelding als de BNO055 niet gevonden wordt
+// - Zet de BNO055 in IMUPLUS-modus (accel + gyro, geen magnetometer) — identiek aan de robot - Print elke 100 ms op 115200 baud:
+//
+// Heading[°]   Roll[°]   Pitch[°]   Calib(S/G/A/M)
+// ─────────────────────────────────────────────────
+//   180.44      -1.25       2.31      0/3/3/0
+//
+// De kalibratiestatus S/G/A/M loopt van 0 (ongekalibreerd) naar 3 (volledig). Voor IMUPLUS is M altijd 0 (geen
+// magnetometer). Gyro en Accel moeten 3 worden na een paar seconden bewegen.
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <Arduino.h>
@@ -89,11 +100,16 @@ static bool bnoBegin() {
   writeReg(REG_OPR_MODE, MODE_CONFIG);  delay(25);
   writeReg(REG_PWR_MODE, 0x00);         delay(10);
 
+  // Extern kristal inschakelen (hogere nauwkeurigheid)
+  // Na het inschakelen heeft de BNO055 ~650 ms nodig om het kristal te stabiliseren.
+  // Te kort wachten leidt tot foutieve sensor-fusie of een vastgelopen initialisatie.
   writeReg(REG_SYS_TRIGGER, 0x80);
   Serial0.println("  Extern kristal inschakelen — wacht 650 ms...");
   delay(650);
 
-  writeReg(REG_OPR_MODE, MODE_IMUPLUS); delay(25);
+  // Zet in IMUPLUS-modus (accel + gyro, geen magnetometer)
+  writeReg(REG_OPR_MODE, MODE_IMUPLUS);
+  delay(25);  // BNO055 heeft ~7 ms nodig voor moduswisseling naar fusion
 
   Serial0.printf("  SYS status: 0x%02X  |  SYS error: 0x%02X\n",
                 readReg(REG_SYS_STATUS), readReg(REG_SYS_ERROR));
