@@ -27,8 +27,10 @@
 #include <Wire.h>
 
 // ─── Pinnen ───────────────────────────────────────────────────────────────────
-#define SDA_PIN  19
-#define SCL_PIN  18
+#define SDA_PIN  19 (ROOD)
+#define SCL_PIN  18 (ZWART)
+// GND (GEEL)
+// 3V3 (BLAUW)
 
 // ─── Taakinstellingen ─────────────────────────────────────────────────────────
 #define FAST_PERIOD_MS   2     // 500 Hz
