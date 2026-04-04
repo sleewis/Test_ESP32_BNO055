@@ -27,8 +27,8 @@
 #include <Wire.h>
 
 // ─── Pinnen ───────────────────────────────────────────────────────────────────
-#define SDA_PIN  19 (ROOD)
-#define SCL_PIN  18 (ZWART)
+#define SDA_PIN  19 // (ROOD)
+#define SCL_PIN  18 // (ZWART)
 // GND (GEEL)
 // 3V3 (BLAUW)
 
