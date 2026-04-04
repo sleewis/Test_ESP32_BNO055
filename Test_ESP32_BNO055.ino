@@ -207,7 +207,7 @@ void slowTask(void *) {
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial0) { delay(10); } // wacht op USB verbinding
+  while (!Serial) { delay(10); } // wacht op USB verbinding
   Serial.println("Gestart!");
   Serial.println("\n=== Test_ESP32_BNO055 ===");
   Serial.printf("I²C: SDA=GPIO%d  SCL=GPIO%d  adres=0x%02X\n",
