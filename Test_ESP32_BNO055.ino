@@ -8,8 +8,6 @@
 // I²C-bus: Wire (GPIO 19 = SDA, GPIO 18 = SCL)
 // BNO055 adres: 0x28
 //
-// LET OP! Serial0: 115200 baud
-//
 // Wat het doet:
 // - Initialiseert I²C op GPIO 19 (SDA) / 18 (SCL) @ 400 kHz — zelfde bus als de robot
 // - Controleert het chip-ID (0xA0) bij opstarten en geeft duidelijke foutmelding als de BNO055 niet gevonden wordt
@@ -25,6 +23,12 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+
+// ─── ESP32-S3-VROOM uses Serial0 ──────────────────────────────────────────────
+//
+#define Serial Serial0
+//
+// ──────────────────────────────────────────────────────────────────────────────
 
 // ─── Pinnen ───────────────────────────────────────────────────────────────────
 #define SDA_PIN  19 // (ROOD)
@@ -95,7 +99,7 @@ static uint8_t readReg(uint8_t reg) {
 
 static bool bnoBegin() {
   uint8_t chipId = readReg(REG_CHIP_ID);
-  Serial0.printf("  Chip-ID: 0x%02X  (verwacht: 0xA0)  → %s\n",
+  Serial.printf("  Chip-ID: 0x%02X  (verwacht: 0xA0)  → %s\n",
                 chipId, chipId == 0xA0 ? "OK" : "FOUT — check bedrading");
   if (chipId != 0xA0) return false;
 
@@ -106,14 +110,14 @@ static bool bnoBegin() {
   // Na het inschakelen heeft de BNO055 ~650 ms nodig om het kristal te stabiliseren.
   // Te kort wachten leidt tot foutieve sensor-fusie of een vastgelopen initialisatie.
   writeReg(REG_SYS_TRIGGER, 0x80);
-  Serial0.println("  Extern kristal inschakelen — wacht 650 ms...");
+  Serial.println("  Extern kristal inschakelen — wacht 650 ms...");
   delay(650);
 
   // Zet in IMUPLUS-modus (accel + gyro, geen magnetometer)
   writeReg(REG_OPR_MODE, MODE_IMUPLUS);
   delay(25);  // BNO055 heeft ~7 ms nodig voor moduswisseling naar fusion
 
-  Serial0.printf("  SYS status: 0x%02X  |  SYS error: 0x%02X\n",
+  Serial.printf("  SYS status: 0x%02X  |  SYS error: 0x%02X\n",
                 readReg(REG_SYS_STATUS), readReg(REG_SYS_ERROR));
   return true;
 }
@@ -164,7 +168,7 @@ void slowTask(void *) {
     vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(SLOW_PERIOD_MS));
 
     if (!gShared.imuReady) {
-      Serial0.println("  Wachten op IMU...");
+      Serial.println("  Wachten op IMU...");
       continue;
     }
 
@@ -180,12 +184,12 @@ void slowTask(void *) {
       err     = gShared.i2cError;
       xSemaphoreGive(xMutex);
     } else {
-      Serial0.println("  [mutex timeout]");
+      Serial.println("  [mutex timeout]");
       continue;
     }
 
     if (err) {
-      Serial0.println("  I²C leesfout!");
+      Serial.println("  I²C leesfout!");
       continue;
     }
 
@@ -194,7 +198,7 @@ void slowTask(void *) {
     uint8_t cAccel= (calib >> 2) & 0x03;
     uint8_t cMag  =  calib       & 0x03;
 
-    Serial0.printf("%9.2f    %7.2f    %7.2f      %d/%d/%d/%d\n",
+    Serial.printf("%9.2f    %7.2f    %7.2f      %d/%d/%d/%d\n",
                   heading, roll, pitch, cSys, cGyro, cAccel, cMag);
   }
 }
@@ -202,25 +206,25 @@ void slowTask(void *) {
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 void setup() {
-  Serial0.begin(115200);
+  Serial.begin(115200);
   while (!Serial0) { delay(10); } // wacht op USB verbinding
-  Serial0.println("Gestart!");
-  Serial0.println("\n=== Test_ESP32_BNO055 ===");
-  Serial0.printf("I²C: SDA=GPIO%d  SCL=GPIO%d  adres=0x%02X\n",
+  Serial.println("Gestart!");
+  Serial.println("\n=== Test_ESP32_BNO055 ===");
+  Serial.printf("I²C: SDA=GPIO%d  SCL=GPIO%d  adres=0x%02X\n",
                 SDA_PIN, SCL_PIN, BNO_ADDR);
 
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(400000);
 
-  Serial0.println("BNO055 initialiseren...");
+  Serial.println("BNO055 initialiseren...");
   bool ok = bnoBegin();
 
   if (ok) {
-    Serial0.println("  Initialisatie geslaagd.\n");
-    Serial0.println("Heading[°]   Roll[°]   Pitch[°]   Calib(S/G/A/M)");
-    Serial0.println("─────────────────────────────────────────────────");
+    Serial.println("  Initialisatie geslaagd.\n");
+    Serial.println("Heading[°]   Roll[°]   Pitch[°]   Calib(S/G/A/M)");
+    Serial.println("─────────────────────────────────────────────────");
   } else {
-    Serial0.println("  Initialisatie MISLUKT. Controleer bedrading en adres.");
+    Serial.println("  Initialisatie MISLUKT. Controleer bedrading en adres.");
     // Taken starten wel — slowTask blijft "Wachten op IMU..." printen
   }
 
